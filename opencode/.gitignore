@@ -1,0 +1,10 @@
+# Зависимости ставятся при установке, в репозитории их хранить не нужно.
+node_modules/
+
+# Файл блокировки генерируется менеджером пакетов локально.
+package-lock.json
+bun.lock
+
+# Секреты. Токены клади в ~/.config/opencode/.secrets/ и подставляй
+# ссылкой {file:~/.config/opencode/.secrets/<имя>} из opencode.json.
+.secrets/

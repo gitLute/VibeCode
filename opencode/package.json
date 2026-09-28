@@ -1,0 +1,8 @@
+{
+  "name": "vibecode-opencode-config",
+  "private": true,
+  "description": "Зависимость плагина global-instructions для opencode",
+  "dependencies": {
+    "@opencode-ai/plugin": "1.18.8"
+  }
+}

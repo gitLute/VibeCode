@@ -1,0 +1,110 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Интерпретатор для инструмента shell. В headless-среде нужен именно bash:
+  // shell должен уметь heredoc, process substitution и stdin-редиректы,
+  // на которых построен скилл headless-shell.
+  "shell": "/bin/bash",
+
+  // Плагин global-instructions подключать НЕ нужно.
+  //
+  // OpenCode сам находит плагины в каталоге plugins/ рядом с этим файлом:
+  // ~/.config/opencode/plugins/global-instructions/index.ts
+  // Достаточно скопировать каталог — работает на любом пути и под любым
+  // домашним каталогом, без правок конфига.
+  //
+  // Поле "plugins" в этом файле нужно только для npm-пакетов и для плагинов
+  // вне каталога конфигурации. Использовать его для локального плагина не
+  // стоит: "~" в нём может не развернуться, и opencode попытается трактовать
+  // запись как имя npm-пакета и молча не загрузит плагин.
+  //
+  // Что делает плагин: через хук сессии "context" (срабатывает перед каждым
+  // запросом к модели) в конец system prompt добавляется содержимое
+  // rules/always.md. Зачем: файл правил в середине промпта перебивается
+  // агентскими инструкциями и MCP-инструкциями, а в конце — гарантированно
+  // доходит до модели.
+
+  // Правила доступа. Формат V2: массив объектов {action, resource, effect}.
+  // Порядок важен: правила проверяются по порядку, первое совпадение решает.
+  "permissions": [
+    // Системные каталоги, к которым агент ходит регулярно.
+    { "action": "external_directory", "resource": "/tmp/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "/dev/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "/dev/null", "effect": "allow" },
+    { "action": "external_directory", "resource": "/dev/null/*", "effect": "allow" },
+
+    // Своя же конфигурация opencode: правила, скиллы, плагины.
+    { "action": "external_directory", "resource": "~/.config/opencode/*", "effect": "allow" },
+
+    // Секреты: запрещены на чтение и на запуск команд, которые их затрагивают.
+    // Правило на внешнюю директорию ставь ПОСЛЕ allow выше, иначе allow
+    // перебьёт deny для этого подкаталога.
+    { "action": "external_directory", "resource": "~/.config/opencode/.secrets/*", "effect": "deny" },
+    { "action": "read", "resource": ".config/opencode/.secrets/*", "effect": "deny" },
+    { "action": "edit", "resource": ".config/opencode/.secrets/*", "effect": "deny" },
+    { "action": "shell", "resource": "*.secrets*", "effect": "deny" },
+
+    // Запрет на чтение изображений: картинки в контексте дорого стоят по
+    // токенам и почти никогда не нужны агенту для работы с кодом.
+    // Здесь только основные форматы; при необходимости допиши свои
+    // (RAW-форматы камер, *.avif, *.heic, *.jxl и так далее).
+    { "action": "read", "resource": "*.png", "effect": "deny" },
+    { "action": "read", "resource": "*.PNG", "effect": "deny" },
+    { "action": "read", "resource": "*.jpg", "effect": "deny" },
+    { "action": "read", "resource": "*.JPG", "effect": "deny" },
+    { "action": "read", "resource": "*.jpeg", "effect": "deny" },
+    { "action": "read", "resource": "*.JPEG", "effect": "deny" },
+    { "action": "read", "resource": "*.gif", "effect": "deny" },
+    { "action": "read", "resource": "*.GIF", "effect": "deny" },
+    { "action": "read", "resource": "*.webp", "effect": "deny" },
+    { "action": "read", "resource": "*.WEBP", "effect": "deny" },
+    { "action": "read", "resource": "*.svg", "effect": "deny" },
+    { "action": "read", "resource": "*.SVG", "effect": "deny" },
+
+    // Скиллы можно вызывать без подтверждения: они только читают файлы.
+    { "action": "skill", "resource": "*", "effect": "allow" }
+  ],
+
+  // Встроенные LSP-серверы, автоформатирование и снапшоты файловой системы
+  // (нужны для корректного undo через Ctrl+Z в TUI).
+  "lsp": true,
+  "formatter": true,
+  "snapshots": true,
+
+  // Запас контекста под компакцию: сколько токенов оставить системному промпту,
+  // чтобы он не вытеснялся при сворачивании длинной сессии.
+  "compaction": {
+    "buffer": 10000
+  },
+
+  // MCP-серверы. Секции нет по умолчанию: добавь те, что нужны тебе.
+  // Токены храни не в этом файле, а отдельными файлами и подставляй
+  // ссылкой {file:~/.config/opencode/.secrets/<имя>} — тогда секрет
+  // не попадёт в git при копировании конфига в репозиторий.
+  //
+  // Удалённый сервер (HTTP):
+  // "mcp": {
+  //   "servers": {
+  //     "context7": {
+  //       "type": "remote",
+  //       "url": "https://mcp.context7.com/mcp",
+  //       "headers": {
+  //         "Authorization": "Bearer {file:~/.config/opencode/.secrets/context7}"
+  //       }
+  //     }
+  //   }
+  // },
+  //
+  // Локальный сервер (команда на stdio):
+  // "mcp": {
+  //   "servers": {
+  //     "github": {
+  //       "type": "local",
+  //       "command": ["github-mcp-server", "stdio"],
+  //       "environment": {
+  //         "GITHUB_PERSONAL_ACCESS_TOKEN": "{file:~/.config/opencode/.secrets/github-pat}"
+  //       }
+  //     }
+  //   }
+  // }
+}
