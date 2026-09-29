@@ -57,9 +57,11 @@ MCP-серверов и описания скиллов. Плагин `global-in
 
 Необязательно:
 
-- **Typst 0.13+** и пакет `@mih4n/ghost` — только для скилла `typst-report`.
-  Требования и известная поломка пакета описаны в разделе
-  [Скилл typst-report](#скилл-typst-report).
+- **Typst 0.13+**, утилита **typship** и пакет `@mih4n/ghost` из форка
+  [gitLute/GhostExtended](https://github.com/gitLute/GhostExtended) — только для
+  скилла `typst-report`. Пакет **не публикуется** в Typst Universe, поэтому
+  ставится вручную через `typship`. Инструкция по установке и известная поломка
+  пакета описаны в разделе [Скилл typst-report](#скилл-typst-report).
 
 ## Установка
 
@@ -225,6 +227,13 @@ opencode reload
 - путь к резервной копии, если она была сделана;
 - какие файлы требуют ручной правки: см. раздел «Что настроить под себя».
 
+Самостоятельно Typst и пакет `@mih4n/ghost` не ставь: это необязательная
+часть для скилла `typst-report`, а пакет ставится вручную через `typship` из
+форка `gitLute/GhostExtended` (см. раздел
+[Скилл typst-report](#установка-typst-и-пакета-ghost-обязательно)). Если
+пользователь просит поставить пакет — выполняй инструкцию оттуда и проверяй
+результат компиляцией `env-check.typ`.
+
 ### Запреты
 
 - Не вызывай `sudo`, `su`, `pkexec` — только попроси пользователя.
@@ -303,7 +312,54 @@ opencode может не развернуть его и истолковать �
 Скилл оформляет отчёты по ГОСТ в Typst поверх пакета `@mih4n/ghost:1.0.1`.
 Без установленного Typst остальные скиллы работают нормально.
 
-Проверка окружения (её же выполняет агент автоматически):
+### Установка Typst и пакета Ghost (обязательно)
+
+Рабочая версия пакета с расширенным стилем `styles.extended` живёт **только в
+форке** [gitLute/GhostExtended](https://github.com/gitLute/GhostExtended)
+(форк `Mih4n/Ghost`) и в Typst Universe не публикуется. Ставить пакет из
+Universe нельзя: там лежит оригинальный `mih4n/ghost` без `styles.extended`,
+и строка `#import "@mih4n/ghost:1.0.1"` падает с `unknown package`. Правильная
+установка — вручную, утилитой `typship`.
+
+Оригинальная инструкция — в
+[README репозитория GhostExtended](https://github.com/gitLute/GhostExtended#установка);
+здесь она продублирована, чтобы README оставался самодостаточным.
+
+```bash
+# 1. Typst 0.13 или новее: пакетный менеджер дистрибутива,
+#    либо https://typst.app/open-source/#download, либо winget install typst
+typst --version
+
+# 2. typship — доставляет локальные пакеты в ~/.local/share/typst/packages/
+cargo install typship
+
+# 3. Клон форка и установка пакета в пространство имён mih4n
+git clone https://github.com/gitLute/GhostExtended
+cd GhostExtended
+typship install mih4n
+
+# 4. Проверка: пакет должен лежать здесь
+ls ~/.local/share/typst/packages/mih4n/ghost/1.0.1/
+```
+
+Обновление пакета — `git pull` в клоне форка и повторная установка (ключ `-y`
+отвечает на вопросы подтверждения):
+
+```bash
+cd GhostExtended
+git pull
+typship install mih4n -y
+```
+
+**Не запускай `typst update`.** Команда переустанавливает пакеты из Typst
+Universe и затирает форк официальной версией — без `styles.extended` и с
+поломкой внутренних импортов (см. ниже). После неё пакет приходится чинить
+заново; если обновить Universe нужно, сначала переустанови форк командой выше
+и только потом правь файлы пакета.
+
+### Проверка окружения
+
+Проверка (её же выполняет агент автоматически):
 
 ```bash
 typst --version
